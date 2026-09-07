@@ -1,18 +1,11 @@
 import { prisma } from "@/lib/db";
 import { readUpload } from "@/lib/storage";
 import { extensionOf } from "@/lib/parse-score";
+import { unwrapMusicXml } from "@/lib/musicxml/unwrap";
 
 export const runtime = "nodejs";
 
 type Params = { params: Promise<{ id: string }> };
-
-const CONTENT_TYPES: Record<string, string> = {
-  ".xml": "application/xml",
-  ".musicxml": "application/vnd.recordare.musicxml+xml",
-  ".mxl": "application/vnd.recordare.musicxml",
-  ".mid": "audio/midi",
-  ".midi": "audio/midi",
-};
 
 export async function GET(_req: Request, { params }: Params) {
   const { id } = await params;
@@ -29,9 +22,27 @@ export async function GET(_req: Request, { params }: Params) {
   }
 
   const ext = extensionOf(score.originalFilename);
+
+  // For notation we always hand OpenSheetMusicDisplay uncompressed MusicXML —
+  // it chokes on a raw .mxl (zip) delivered as text.
+  if (score.source === "musicxml") {
+    let xml: string;
+    try {
+      xml = unwrapMusicXml(new Uint8Array(bytes), score.originalFilename);
+    } catch {
+      return new Response("Could not read the score file.", { status: 422 });
+    }
+    return new Response(xml, {
+      headers: {
+        "Content-Type": "application/xml; charset=utf-8",
+        "Cache-Control": "private, max-age=3600",
+      },
+    });
+  }
+
   return new Response(new Uint8Array(bytes), {
     headers: {
-      "Content-Type": CONTENT_TYPES[ext] ?? "application/octet-stream",
+      "Content-Type": ext === ".mid" || ext === ".midi" ? "audio/midi" : "application/octet-stream",
       "Content-Disposition": `inline; filename="${encodeURIComponent(
         score.originalFilename,
       )}"`,
