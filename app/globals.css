@@ -49,9 +49,8 @@ body {
   border-radius: 8px;
 }
 /* Tailwind Preflight resets images; the playback cursor is an <img> that
-   OSMD positions and sizes itself — let it be. */
+   OSMD positions and sizes itself — don't let the stylesheet fight it. */
 .osmd-container img {
   max-width: none;
-  height: auto;
-  display: block;
+  z-index: 5;
 }
