@@ -15,5 +15,5 @@ commonLabels:
 
 # Bump the tag here on each release instead of editing deployment.yaml.
 images:
-  - name: docker.io/dashbo/rehearsal-room
+  - name: ghcr.io/dashbo/rehearsal-room
     newTag: "0.1.0"

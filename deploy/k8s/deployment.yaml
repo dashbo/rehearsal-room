@@ -24,7 +24,7 @@ spec:
         fsGroup: 1001 # make the mounted PVC writable by the app user
       containers:
         - name: app
-          image: docker.io/dashbo/rehearsal-room:0.1.0
+          image: ghcr.io/dashbo/rehearsal-room:0.1.0
           imagePullPolicy: IfNotPresent
           ports:
             - name: http

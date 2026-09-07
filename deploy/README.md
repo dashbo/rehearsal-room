@@ -13,27 +13,38 @@ Because it's SQLite on one volume, the Deployment runs **`replicas: 1`** with
 
 ## 1. Build and push the image
 
+The image goes to **GitHub Container Registry** (`ghcr.io/dashbo/rehearsal-room`).
+No separate account or registry credentials — GitHub Actions authenticates with
+the built-in `GITHUB_TOKEN`.
+
 ### Option A — GitHub Actions (recommended)
 
 `.github/workflows/docker-image.yml` builds on every push to `main` and on
-`v*` tags, pushing to `docker.io/dashbo/rehearsal-room`.
-
-Add two repo secrets (Settings → Secrets and variables → Actions):
-
-- `DOCKERHUB_USERNAME` — `dashbo`
-- `DOCKERHUB_TOKEN` — a Docker Hub access token with read/write
-
-Tag a release to cut a versioned image:
+`v*` tags. Nothing to configure; just tag a release:
 
 ```bash
 git tag v0.1.0 && git push --tags
 ```
 
+After the first successful run, the package appears at
+`https://github.com/dashbo/rehearsal-room/pkgs/container/rehearsal-room`.
+It starts **private** — do one of:
+
+- **Make it public** (simplest for a homelab): package page → *Package settings*
+  → *Change visibility* → Public. The cluster then pulls with no credentials.
+- **Keep it private**: create a classic PAT with `read:packages`, then
+  ```bash
+  kubectl -n rehearsal-room create secret docker-registry ghcr \
+    --docker-server=ghcr.io --docker-username=dashbo --docker-password=<PAT>
+  ```
+  and add `imagePullSecrets: [{ name: ghcr }]` to the Deployment's pod spec.
+
 ### Option B — locally
 
 ```bash
-docker build -t docker.io/dashbo/rehearsal-room:0.1.0 .
-docker push docker.io/dashbo/rehearsal-room:0.1.0
+echo "<PAT with write:packages>" | docker login ghcr.io -u dashbo --password-stdin
+docker build -t ghcr.io/dashbo/rehearsal-room:0.1.0 .
+docker push ghcr.io/dashbo/rehearsal-room:0.1.0
 ```
 
 ## 2. Point the manifests at your cluster
@@ -63,7 +74,7 @@ migrations on rollout.
 
 ```bash
 # after a new image is pushed
-kubectl -n rehearsal-room set image deploy/rehearsal-room app=docker.io/dashbo/rehearsal-room:0.2.0
+kubectl -n rehearsal-room set image deploy/rehearsal-room app=ghcr.io/dashbo/rehearsal-room:0.2.0
 # or bump newTag in kustomization.yaml and: kubectl apply -k deploy/k8s
 ```
 
