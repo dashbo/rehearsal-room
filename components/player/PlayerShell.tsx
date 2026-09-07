@@ -61,13 +61,13 @@ export function PlayerShell({
         </p>
       )}
 
-      {/* Transport stays pinned to the top of the viewport while you scroll
-          the score, so Play / Stop are always reachable. */}
-      <div className="sticky top-0 z-20 -mx-5 border-b border-border bg-background/95 px-5 py-2 backdrop-blur">
+      {/* Transport + part controls stay pinned to the top of the viewport
+          while you scroll the score, so Play / Stop and the mute toggles
+          are always reachable. */}
+      <div className="sticky top-0 z-20 -mx-5 flex flex-col gap-3 border-b border-border bg-background/95 px-5 py-2 backdrop-blur">
         <TransportBar />
+        <PartMixer scoreId={scoreId} />
       </div>
-
-      <PartMixer scoreId={scoreId} />
 
       {source === "musicxml" ? (
         <Notation scoreId={scoreId} ir={ir} />

@@ -28,7 +28,7 @@ export function PartMixer({ scoreId }: { scoreId: string }) {
           </button>
         )}
       </div>
-      <ul className="divide-y divide-border">
+      <ul className="max-h-[36vh] divide-y divide-border overflow-y-auto">
         {parts.map((part) => (
           <PartRow
             key={part.id}
@@ -82,7 +82,7 @@ function PartRow({
 
   return (
     <li
-      className={`flex flex-wrap items-center gap-3 px-4 py-3 transition-opacity ${
+      className={`flex flex-wrap items-center gap-3 px-4 py-2 transition-opacity ${
         part.mute ? "opacity-45" : ""
       }`}
     >
