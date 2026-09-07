@@ -177,19 +177,34 @@ export function Notation({ scoreId, ir }: { scoreId: string; ir: ScoreIR }) {
     if (status !== "ready") return;
     const cursor = getCursor();
     if (!cursor) return;
+    // playback position, in whole notes (the iterator's timestamp unit)
     const targetWhole = positionTicks / (ir.ppq * 4);
+    const eps = 1e-6;
 
-    if (forceReset || targetWhole < lastWholeRef.current - 1e-6) {
+    // Only walk back to the start when we've actually moved backwards
+    // (scrub, loop wrap); otherwise keep advancing from where we are.
+    if (forceReset || targetWhole < lastWholeRef.current - eps) {
       cursor.reset();
     }
     lastWholeRef.current = targetWhole;
 
+    // We want the note that is *currently sounding*: the last entry whose
+    // timestamp is <= the playback position. Advance while that holds, then
+    // step back off the first entry that starts in the future.
     let guard = 0;
     while (!cursor.iterator.EndReached && guard++ < 20000) {
       const ts = cursor.iterator.currentTimeStamp?.RealValue ?? 0;
-      if (ts >= targetWhole - 1e-6) break;
+      if (ts > targetWhole + eps) {
+        cursor.previous();
+        break;
+      }
+      const prevTs = ts;
       cursor.next();
+      const nextTs = cursor.iterator.currentTimeStamp?.RealValue ?? prevTs;
+      if (nextTs === prevTs && !cursor.iterator.EndReached) break; // not moving
     }
+    if (cursor.iterator.EndReached) cursor.previous();
+
     cursor.show();
     cursor.update();
     forceCursorVisible();
