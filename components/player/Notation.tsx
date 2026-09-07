@@ -54,6 +54,16 @@ export function Notation({ scoreId, ir }: { scoreId: string; ir: ScoreIR }) {
     return osmd.cursor ?? osmd.cursors?.[0];
   }
 
+  // OSMD creates the cursor <img> with a NEGATIVE z-index (it's meant to sit
+  // behind a transparent SVG). Our sheet has an opaque white background, so
+  // force the cursor in front and make sure it's displayed.
+  function forceCursorVisible() {
+    const el = getCursor()?.cursorElement as HTMLElement | undefined;
+    if (!el) return;
+    el.style.zIndex = "10";
+    el.style.display = "";
+  }
+
   // re-render for the current container width, then (re)show the cursor
   function renderAndShowCursor() {
     const osmd = osmdRef.current;
@@ -66,6 +76,7 @@ export function Notation({ scoreId, ir }: { scoreId: string; ir: ScoreIR }) {
       if (cursor) {
         cursor.show();
         cursor.update();
+        forceCursorVisible();
       }
     } catch {
       /* transient layout race — a later pass will catch it */
@@ -92,9 +103,12 @@ export function Notation({ scoreId, ir }: { scoreId: string; ir: ScoreIR }) {
         // OSMD's own followCursor scrolls the whole page.
         followCursor: false,
         cursorsOptions: [
-          { type: 0, color: "#2f6feb", alpha: 0.35, follow: false },
+          { type: 0, color: "#2f6feb", alpha: 0.45, follow: false },
         ],
       });
+      // Tells OSMD to paint its own white page background AND (crucially) to
+      // give the cursor a positive z-index instead of the default -2.
+      osmd.EngravingRules.PageBackgroundColor = "#FFFFFF";
       osmdRef.current = osmd;
 
       const res = await fetch(`/api/scores/${scoreId}/file`);
@@ -172,7 +186,9 @@ export function Notation({ scoreId, ir }: { scoreId: string; ir: ScoreIR }) {
       if (ts >= targetWhole - 1e-6) break;
       cursor.next();
     }
+    cursor.show();
     cursor.update();
+    forceCursorVisible();
     scrollCursorIntoPanel(
       containerRef.current,
       cursor.cursorElement as HTMLElement | undefined,
