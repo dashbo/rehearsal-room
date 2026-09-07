@@ -48,6 +48,10 @@ export class AudioEngine {
   private rafId: number | null = null;
   private loaded = false;
 
+  /** transport event id for the manual (count-in) loop boundary, if active */
+  private loopBoundaryId: number | null = null;
+  private isCountingIn = false;
+
   private positionListeners = new Set<(ticks: number) => void>();
   private stateListeners = new Set<(playing: boolean) => void>();
   private endListeners = new Set<() => void>();
@@ -189,6 +193,19 @@ export class AudioEngine {
 
   setCountIn(on: boolean) {
     this.countInEnabled = on;
+    // switches the loop between native (seamless) and manual (count-in) mode
+    this.applyLoop();
+  }
+
+  /** Play one bar of count-in clicks for the meter at `atTick`. Returns its
+   *  length in seconds. */
+  private playCountInClicks(atTick: number): number {
+    const spb = 60 / (this.baseBpmAt(atTick) * this.tempoRate);
+    const beatsPerBar = this.beatGrid.beatsPerBarAt(atTick);
+    const beatTicks = this.beatGrid.beatTicksAt(atTick);
+    const secondsPerBeat = (beatTicks / this.ir.ppq) * spb;
+    const now = Tone.now() + 0.08;
+    return this.metronome.countIn(now, beatsPerBar, secondsPerBeat);
   }
 
   // ---- loop -----------------------------------------------------------------
@@ -208,21 +225,88 @@ export class AudioEngine {
     return m ? m.endTick : this.ir.durationTicks;
   }
 
+  private loopBounds(): { a: number; b: number } {
+    const a = this.measureStartTick(
+      Math.min(this.loop.startMeasure, this.loop.endMeasure),
+    );
+    const b = this.measureEndTick(
+      Math.max(this.loop.startMeasure, this.loop.endMeasure),
+    );
+    return { a, b };
+  }
+
+  private clearLoopBoundary() {
+    if (this.loopBoundaryId !== null) {
+      Tone.getTransport().clear(this.loopBoundaryId);
+      this.loopBoundaryId = null;
+    }
+  }
+
   private applyLoop() {
     const transport = Tone.getTransport();
-    if (this.loop.enabled) {
-      const a = this.measureStartTick(
-        Math.min(this.loop.startMeasure, this.loop.endMeasure),
-      );
-      const b = this.measureEndTick(
-        Math.max(this.loop.startMeasure, this.loop.endMeasure),
-      );
+    this.clearLoopBoundary();
+
+    // If the user retunes the loop mid count-in, abandon that count and let
+    // them press play again rather than resuming into a stale region.
+    if (this.isCountingIn) {
+      this.cancelCountIn();
+      this.isCountingIn = false;
+      this.emitState(false);
+    }
+
+    if (!this.loop.enabled) {
+      transport.loop = false;
+      return;
+    }
+
+    const { a, b } = this.loopBounds();
+
+    if (this.countInEnabled) {
+      // Manual loop: stop at the end, count a bar, resume from the start.
+      transport.loop = false;
+      const boundary = Math.max(a + 1, b - 1);
+      this.loopBoundaryId = transport.schedule((time) => {
+        // hop out of the audio callback before touching transport state
+        Tone.getDraw().schedule(() => this.handleLoopBoundary(a), time);
+      }, `${boundary}i`);
+    } else {
+      // Native seamless loop.
       transport.loop = true;
       transport.loopStart = `${a}i`;
       transport.loopEnd = `${b}i`;
-    } else {
-      transport.loop = false;
     }
+  }
+
+  private handleLoopBoundary(loopStartTick: number) {
+    const transport = Tone.getTransport();
+    if (
+      !this.loop.enabled ||
+      !this.countInEnabled ||
+      this.isCountingIn ||
+      transport.state !== "started"
+    ) {
+      return;
+    }
+
+    transport.pause();
+    this.stopRaf();
+    this.releaseAll();
+    this.isCountingIn = true;
+    this.emitPositionAt(loopStartTick); // show where playback will resume
+
+    const countInSec = this.playCountInClicks(loopStartTick);
+    this.countInTimer = setTimeout(
+      () => {
+        this.countInTimer = null;
+        this.isCountingIn = false;
+        if (!this.loop.enabled) return;
+        transport.ticks = loopStartTick;
+        this.syncTempoToPosition();
+        transport.start();
+        this.startRaf();
+      },
+      Math.max(0, countInSec * 1000 - 15),
+    );
   }
 
   // ---- transport ----------------------------------------------------------
@@ -230,6 +314,17 @@ export class AudioEngine {
   async play() {
     await this.load();
     const transport = Tone.getTransport();
+
+    // If we're sitting at/after the loop end (e.g. paused mid count-in),
+    // drop back to the loop start so Play resumes the region.
+    if (this.loop.enabled) {
+      const { a, b } = this.loopBounds();
+      if (transport.ticks >= b) {
+        transport.ticks = a;
+        this.emitPosition();
+      }
+    }
+
     this.syncTempoToPosition();
 
     const startClock = () => {
@@ -240,17 +335,7 @@ export class AudioEngine {
     };
 
     if (this.countInEnabled) {
-      const tick = transport.ticks;
-      const spb = 60 / (this.baseBpmAt(tick) * this.tempoRate);
-      const beatsPerBar = this.beatGrid.beatsPerBarAt(tick);
-      const beatTicks = this.beatGrid.beatTicksAt(tick);
-      const secondsPerBeat = (beatTicks / this.ir.ppq) * spb;
-      const now = Tone.now() + 0.1;
-      const countInSec = this.metronome.countIn(
-        now,
-        beatsPerBar,
-        secondsPerBeat,
-      );
+      const countInSec = this.playCountInClicks(transport.ticks);
       this.countInTimer = setTimeout(
         startClock,
         Math.max(0, countInSec * 1000 - 20),
@@ -262,6 +347,7 @@ export class AudioEngine {
 
   pause() {
     this.cancelCountIn();
+    this.isCountingIn = false;
     Tone.getTransport().pause();
     this.stopRaf();
     this.emitState(false);
@@ -270,6 +356,7 @@ export class AudioEngine {
 
   stop() {
     this.cancelCountIn();
+    this.isCountingIn = false;
     const transport = Tone.getTransport();
     transport.stop();
     transport.ticks = this.loop.enabled
@@ -363,8 +450,10 @@ export class AudioEngine {
   }
 
   private emitPosition() {
-    const t = Tone.getTransport().ticks;
-    this.positionListeners.forEach((cb) => cb(t));
+    this.emitPositionAt(Tone.getTransport().ticks);
+  }
+  private emitPositionAt(ticks: number) {
+    this.positionListeners.forEach((cb) => cb(ticks));
   }
   private emitState(playing: boolean) {
     this.stateListeners.forEach((cb) => cb(playing));
@@ -374,6 +463,8 @@ export class AudioEngine {
 
   dispose() {
     this.cancelCountIn();
+    this.isCountingIn = false;
+    this.clearLoopBoundary();
     this.stopRaf();
     if (this.endTimer) clearInterval(this.endTimer as unknown as number);
     const transport = Tone.getTransport();

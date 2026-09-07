@@ -140,14 +140,17 @@ export function TransportBar() {
           />
           Metronome
         </label>
-        <label className="flex items-center gap-2">
+        <label
+          className="flex items-center gap-2"
+          title="One bar of clicks before playback starts — and before every loop repeat"
+        >
           <input
             type="checkbox"
             checked={countInOn}
             onChange={(e) => setCountIn(e.target.checked)}
             className="accent-accent"
           />
-          1-bar count-in
+          Count-in{loop.enabled ? " (every loop)" : ""}
         </label>
 
         <label className="flex items-center gap-2">
