@@ -86,7 +86,7 @@ function PartRow({
         part.mute ? "opacity-45" : ""
       }`}
     >
-      <div className="min-w-40 flex-1">
+      <div className="min-w-0 flex-1">
         {editing ? (
           <div className="flex flex-wrap items-center gap-2">
             <input
@@ -126,14 +126,12 @@ function PartRow({
         ) : (
           <button
             onClick={() => setEditing(true)}
-            className="group flex items-center gap-2 text-left"
+            className="group flex min-w-0 items-center gap-2 text-left"
+            title="Rename or relabel this part"
           >
-            <span className="font-medium">{part.name}</span>
-            <span className="rounded bg-border/60 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted">
+            <span className="truncate font-medium">{part.name}</span>
+            <span className="shrink-0 rounded bg-border/60 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted">
               {part.voiceType}
-            </span>
-            <span className="text-xs text-muted opacity-0 group-hover:opacity-100">
-              edit
             </span>
           </button>
         )}
@@ -142,7 +140,7 @@ function PartRow({
 
       <button
         onClick={() => onControls({ mute: !part.mute })}
-        className={`rounded-md border px-2 py-1 text-xs font-medium ${
+        className={`shrink-0 rounded-md border px-2 py-1 text-xs font-medium ${
           part.mute
             ? "border-red-400 bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300"
             : "border-border hover:border-accent"
@@ -158,7 +156,7 @@ function PartRow({
         step={1}
         value={part.volumeDb}
         onChange={(e) => onControls({ volumeDb: Number(e.target.value) })}
-        className="w-28 accent-accent"
+        className="w-20 shrink-0 accent-accent sm:w-24"
         aria-label={`${part.name} volume`}
       />
     </li>

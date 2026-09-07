@@ -63,10 +63,15 @@ export function PlayerShell({
 
       {/* Transport + part controls stay pinned to the top of the viewport
           while you scroll the score, so Play / Stop and the mute toggles
-          are always reachable. */}
-      <div className="sticky top-0 z-20 -mx-5 flex flex-col gap-3 border-b border-border bg-background/95 px-5 py-2 backdrop-blur">
-        <TransportBar />
-        <PartMixer scoreId={scoreId} />
+          are always reachable. Side by side on wide screens; stacked when
+          there isn't room. */}
+      <div className="sticky top-0 z-20 -mx-5 flex flex-col gap-3 border-b border-border bg-background/95 px-5 py-2 backdrop-blur lg:flex-row lg:items-start">
+        <div className="min-w-0 flex-1">
+          <TransportBar />
+        </div>
+        <div className="w-full shrink-0 lg:w-[22rem]">
+          <PartMixer scoreId={scoreId} />
+        </div>
       </div>
 
       {source === "musicxml" ? (

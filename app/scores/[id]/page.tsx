@@ -18,7 +18,7 @@ export default async function ScorePage({
   const ir = score.ir as unknown as ScoreIR;
 
   return (
-    <main className="mx-auto max-w-4xl px-5 py-8">
+    <main className="mx-auto max-w-6xl px-5 py-8">
       <div className="mb-6 flex items-baseline justify-between gap-4">
         <div className="min-w-0">
           <Link href="/" className="text-sm text-muted hover:text-accent">
