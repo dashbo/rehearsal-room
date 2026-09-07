@@ -45,7 +45,6 @@ interface PlayerState {
   setLoop: (loop: Partial<PlayerState["loop"]>) => void;
 
   setPartControls: (id: string, patch: Partial<PartControls>) => void;
-  isolatePart: (id: string) => void;
   clearMutes: () => void;
   renamePart: (id: string, name: string, voiceType: string) => void;
 }
@@ -152,26 +151,6 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         mute: updated.mute,
         volumeDb: updated.volumeDb,
       });
-    }
-  },
-
-  isolatePart: (id) => {
-    const parts = get().parts;
-    const target = parts.find((p) => p.id === id);
-    const alreadyIsolated =
-      !!target &&
-      !target.mute &&
-      parts.every((p) => p.id === id || p.mute);
-    const next = parts.map((p) => ({
-      ...p,
-      mute: alreadyIsolated ? false : p.id !== id,
-    }));
-    set({ parts: next });
-    const engine = get().engine;
-    if (engine) {
-      for (const p of next) {
-        engine.setPartControls(p.id, { mute: p.mute, volumeDb: p.volumeDb });
-      }
     }
   },
 

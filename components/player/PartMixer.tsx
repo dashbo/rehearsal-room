@@ -8,7 +8,6 @@ import { VOICE_TYPES, type VoiceType } from "@/lib/score-ir";
 export function PartMixer({ scoreId }: { scoreId: string }) {
   const parts = usePlayerStore((s) => s.parts);
   const setPartControls = usePlayerStore((s) => s.setPartControls);
-  const isolatePart = usePlayerStore((s) => s.isolatePart);
   const clearMutes = usePlayerStore((s) => s.clearMutes);
   const renamePart = usePlayerStore((s) => s.renamePart);
 
@@ -36,7 +35,6 @@ export function PartMixer({ scoreId }: { scoreId: string }) {
             scoreId={scoreId}
             part={part}
             onControls={(patch) => setPartControls(part.id, patch)}
-            onIsolate={() => isolatePart(part.id)}
             onRename={(name, voiceType) => renamePart(part.id, name, voiceType)}
           />
         ))}
@@ -49,7 +47,6 @@ function PartRow({
   scoreId,
   part,
   onControls,
-  onIsolate,
   onRename,
 }: {
   scoreId: string;
@@ -61,7 +58,6 @@ function PartRow({
     volumeDb: number;
   };
   onControls: (patch: { mute?: boolean; volumeDb?: number }) => void;
-  onIsolate: () => void;
   onRename: (name: string, voiceType: string) => void;
 }) {
   const [editing, setEditing] = useState(false);
@@ -144,13 +140,6 @@ function PartRow({
         {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
       </div>
 
-      <button
-        onClick={onIsolate}
-        className="rounded-md border border-border px-2 py-1 text-xs font-medium hover:border-accent"
-        title="Play only this part (click again to bring the others back)"
-      >
-        Only this
-      </button>
       <button
         onClick={() => onControls({ mute: !part.mute })}
         className={`rounded-md border px-2 py-1 text-xs font-medium ${

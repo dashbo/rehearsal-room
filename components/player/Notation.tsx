@@ -5,6 +5,7 @@ import type { ScoreIR } from "@/lib/score-ir";
 import { usePlayerStore } from "@/store/player-store";
 
 type OSMD = import("opensheetmusicdisplay").OpenSheetMusicDisplay;
+type OSMDCursor = OSMD["cursor"];
 
 export function Notation({ scoreId, ir }: { scoreId: string; ir: ScoreIR }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -18,18 +19,27 @@ export function Notation({ scoreId, ir }: { scoreId: string; ir: ScoreIR }) {
 
   const positionTicks = usePlayerStore((s) => s.positionTicks);
 
-  // re-render for the current container width, then (re)place the cursor
+  function getCursor(): OSMDCursor | undefined {
+    const osmd = osmdRef.current;
+    if (!osmd) return undefined;
+    return osmd.cursor ?? osmd.cursors?.[0];
+  }
+
+  // re-render for the current container width, then (re)show the cursor
   function renderAndShowCursor() {
     const osmd = osmdRef.current;
     const el = containerRef.current;
-    if (!osmd || !el) return;
+    if (!osmd?.IsReadyToRender() || !el) return;
     try {
       osmd.render();
-      osmd.cursor.show();
-      osmd.cursor.update();
       renderWidthRef.current = el.clientWidth;
+      const cursor = getCursor();
+      if (cursor) {
+        cursor.show();
+        cursor.update();
+      }
     } catch {
-      /* transient layout race — ignore, a later pass will catch it */
+      /* transient layout race — a later pass will catch it */
     }
   }
 
@@ -45,12 +55,14 @@ export function Notation({ scoreId, ir }: { scoreId: string; ir: ScoreIR }) {
       if (cancelled || !containerRef.current) return;
 
       const osmd = new OpenSheetMusicDisplay(containerRef.current, {
-        autoResize: false, // we drive re-layout with a ResizeObserver
+        autoResize: false, // re-layout is driven by a ResizeObserver
         backend: "svg",
         drawingParameters: "default",
         drawPartNames: true,
         followCursor: true,
-        cursorsOptions: [{ type: 0, color: "#2f6feb", alpha: 0.35, follow: true }],
+        cursorsOptions: [
+          { type: 0, color: "#2f6feb", alpha: 0.35, follow: true },
+        ],
       });
       osmdRef.current = osmd;
 
@@ -62,19 +74,16 @@ export function Notation({ scoreId, ir }: { scoreId: string; ir: ScoreIR }) {
       await osmd.load(xml);
       if (cancelled) return;
 
-      osmd.cursor.reset();
-      renderAndShowCursor();
+      renderAndShowCursor(); // first paint (cursor is created during render)
+      getCursor()?.reset();
+      getCursor()?.show();
       setStatus("ready");
 
-      // container width often settles a frame or two after mount; re-render
-      // once it has, otherwise the engraving lays out at the wrong width and
-      // only snaps into place on the next resize (e.g. a browser zoom).
-      requestAnimationFrame(() => {
-        if (!cancelled) renderAndShowCursor();
-      });
-      setTimeout(() => {
-        if (!cancelled) renderAndShowCursor();
-      }, 150);
+      // the container width often settles a frame or two after mount; if we
+      // laid out before that, the engraving is the wrong width and only
+      // snaps into place on a later resize (e.g. a browser zoom).
+      requestAnimationFrame(() => !cancelled && renderAndShowCursor());
+      setTimeout(() => !cancelled && renderAndShowCursor(), 200);
     })().catch((e) => {
       if (cancelled) return;
       setStatus("error");
@@ -90,6 +99,7 @@ export function Notation({ scoreId, ir }: { scoreId: string; ir: ScoreIR }) {
       }
       osmdRef.current = null;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scoreId]);
 
   // re-render on container resize
@@ -99,8 +109,7 @@ export function Notation({ scoreId, ir }: { scoreId: string; ir: ScoreIR }) {
     let timer: ReturnType<typeof setTimeout> | null = null;
     const ro = new ResizeObserver(() => {
       if (!osmdRef.current) return;
-      const w = el.clientWidth;
-      if (Math.abs(w - renderWidthRef.current) < 8) return;
+      if (Math.abs(el.clientWidth - renderWidthRef.current) < 8) return;
       if (timer) clearTimeout(timer);
       timer = setTimeout(() => {
         renderAndShowCursor();
@@ -116,10 +125,10 @@ export function Notation({ scoreId, ir }: { scoreId: string; ir: ScoreIR }) {
   }, [status]);
 
   function placeCursor(forceReset = false) {
-    const osmd = osmdRef.current;
-    if (!osmd || status !== "ready") return;
+    if (status !== "ready") return;
+    const cursor = getCursor();
+    if (!cursor) return;
     const targetWhole = positionTicks / (ir.ppq * 4);
-    const cursor = osmd.cursor;
 
     if (forceReset || targetWhole < lastWholeRef.current - 1e-6) {
       cursor.reset();
