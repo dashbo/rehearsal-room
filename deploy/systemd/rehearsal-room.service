@@ -1,0 +1,37 @@
+# Bare-Node deployment (no Docker). See deploy/README.md for the build steps.
+#
+#   sudo cp deploy/systemd/rehearsal-room.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now rehearsal-room
+#
+# Adjust User, WorkingDirectory, the data paths, and the node path
+# (`which node`) to match your host. A system-wide Node (/usr/bin or
+# /usr/local/bin) is simplest; a home-dir Node (nvm) needs ProtectHome=false.
+
+[Unit]
+Description=Rehearsal Room
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=rehearsal
+WorkingDirectory=/opt/rehearsal-room
+Environment=NODE_ENV=production
+Environment=PORT=3000
+Environment=DATABASE_URL=file:/var/lib/rehearsal-room/prod.db
+Environment=STORAGE_DIR=/var/lib/rehearsal-room/storage
+ExecStartPre=/usr/bin/node node_modules/prisma/build/index.js migrate deploy
+ExecStart=/usr/bin/node node_modules/next/dist/bin/next start --hostname 0.0.0.0 --port 3000
+Restart=on-failure
+RestartSec=5
+
+# hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/rehearsal-room /opt/rehearsal-room/.next
+
+[Install]
+WantedBy=multi-user.target

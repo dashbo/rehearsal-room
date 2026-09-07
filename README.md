@@ -36,9 +36,16 @@ npm run dev                    # http://localhost:3000
 
 ## Deploying
 
-A container image (`Dockerfile`) plus Kustomize manifests for Kubernetes
-(single replica, SQLite + uploads on one PersistentVolume, ingress-nginx +
-cert-manager) live in [`deploy/`](deploy/). See [`deploy/README.md`](deploy/README.md).
+Everything is in [`deploy/`](deploy/), with three paths in
+[`deploy/README.md`](deploy/README.md):
+
+- **Docker Compose** on one host (app + Caddy for automatic HTTPS)
+- **Kubernetes** (Kustomize manifests, ingress-nginx + cert-manager)
+- **bare Node + systemd**, no Docker
+
+All run a single instance with state (SQLite + uploads) under one
+directory/volume; the container image is published to
+`ghcr.io/dashbo/rehearsal-room` by GitHub Actions.
 
 ## Adding scores by URL
 

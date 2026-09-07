@@ -1,0 +1,54 @@
+name: rehearsal-room
+
+# Single-host deployment. `docker compose up -d` runs the app behind Caddy
+# (automatic HTTPS). To run the app alone on a port instead, see the notes
+# in deploy/README.md.
+
+services:
+  app:
+    image: ghcr.io/dashbo/rehearsal-room:${TAG:-latest}
+    # To build on this host instead of pulling, comment `image:` above and
+    # uncomment:
+    # build:
+    #   context: ../..
+    #   dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: file:/app/data/prod.db
+      STORAGE_DIR: /app/data/storage
+    volumes:
+      - data:/app/data
+    # Uncomment to reach the app directly on the host and skip Caddy/TLS:
+    # ports:
+    #   - "3000:3000"
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "require('http').get('http://127.0.0.1:3000/api/health',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:?set APP_DOMAIN in deploy/compose/.env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  data:
+  caddy_data:
+  caddy_config:
