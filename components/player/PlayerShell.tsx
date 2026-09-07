@@ -61,15 +61,19 @@ export function PlayerShell({
         </p>
       )}
 
-      <TransportBar />
+      {/* Transport stays pinned to the top of the viewport while you scroll
+          the score, so Play / Stop are always reachable. */}
+      <div className="sticky top-0 z-20 -mx-5 border-b border-border bg-background/95 px-5 py-2 backdrop-blur">
+        <TransportBar />
+      </div>
+
+      <PartMixer scoreId={scoreId} />
 
       {source === "musicxml" ? (
         <Notation scoreId={scoreId} ir={ir} />
       ) : (
         <PositionReadout ir={ir} />
       )}
-
-      <PartMixer scoreId={scoreId} />
 
       <p className="text-xs text-muted">
         Tip: audio starts after your first tap on Play (browsers block sound

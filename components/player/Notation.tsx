@@ -7,6 +7,35 @@ import { usePlayerStore } from "@/store/player-store";
 type OSMD = import("opensheetmusicdisplay").OpenSheetMusicDisplay;
 type OSMDCursor = OSMD["cursor"];
 
+/**
+ * Keep the playback cursor visible by scrolling ONLY the notation panel —
+ * never the page. `scrollIntoView` would walk every scrollable ancestor,
+ * including the document, which yanks the transport controls off-screen.
+ */
+function scrollCursorIntoPanel(
+  panel: HTMLElement | null,
+  cursorEl: HTMLElement | undefined,
+) {
+  if (!panel || !cursorEl) return;
+  const margin = 48;
+
+  const top = cursorEl.offsetTop;
+  const bottom = top + cursorEl.offsetHeight;
+  if (top < panel.scrollTop + margin) {
+    panel.scrollTop = Math.max(0, top - margin);
+  } else if (bottom > panel.scrollTop + panel.clientHeight - margin) {
+    panel.scrollTop = bottom - panel.clientHeight + margin;
+  }
+
+  const left = cursorEl.offsetLeft;
+  const right = left + cursorEl.offsetWidth;
+  if (left < panel.scrollLeft + margin) {
+    panel.scrollLeft = Math.max(0, left - margin);
+  } else if (right > panel.scrollLeft + panel.clientWidth - margin) {
+    panel.scrollLeft = right - panel.clientWidth + margin;
+  }
+}
+
 export function Notation({ scoreId, ir }: { scoreId: string; ir: ScoreIR }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const osmdRef = useRef<OSMD | null>(null);
@@ -59,9 +88,11 @@ export function Notation({ scoreId, ir }: { scoreId: string; ir: ScoreIR }) {
         backend: "svg",
         drawingParameters: "default",
         drawPartNames: true,
-        followCursor: true,
+        // We scroll the cursor into view ourselves, inside this panel only —
+        // OSMD's own followCursor scrolls the whole page.
+        followCursor: false,
         cursorsOptions: [
-          { type: 0, color: "#2f6feb", alpha: 0.35, follow: true },
+          { type: 0, color: "#2f6feb", alpha: 0.35, follow: false },
         ],
       });
       osmdRef.current = osmd;
@@ -142,10 +173,10 @@ export function Notation({ scoreId, ir }: { scoreId: string; ir: ScoreIR }) {
       cursor.next();
     }
     cursor.update();
-    (cursor.cursorElement as HTMLElement | undefined)?.scrollIntoView?.({
-      block: "nearest",
-      inline: "nearest",
-    });
+    scrollCursorIntoPanel(
+      containerRef.current,
+      cursor.cursorElement as HTMLElement | undefined,
+    );
   }
 
   // follow playback
