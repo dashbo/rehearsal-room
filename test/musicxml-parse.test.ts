@@ -133,6 +133,42 @@ describe("parseMusicXml", () => {
     expect(score.measures).toHaveLength(5);
   });
 
+  it("treats a short opening measure as a pickup, not a padded full bar", () => {
+    // 3/4, first bar holds only one quarter note (a 1-beat anacrusis) and is
+    // NOT marked implicit — the engraver just wrote a partial bar.
+    const xml = doc(
+      `<measure number="1">
+        <attributes><divisions>2</divisions>
+          <time><beats>3</beats><beat-type>4</beat-type></time></attributes>
+        ${note("G", 4, 2)}
+      </measure>
+      <measure number="2">
+        ${note("C", 5, 2)}${note("D", 5, 2)}${note("E", 5, 2)}
+      </measure>`,
+    );
+    const score = parseMusicXml(xml);
+    expect(score.measures[0].endTick).toBe(480); // one quarter, not 1440
+    expect(score.measures[1].startTick).toBe(480);
+    expect(score.parts[0].notes.map((n) => n.startTick)).toEqual([
+      0, 480, 960, 1440,
+    ]);
+  });
+
+  it("still pads a measure that is only short by rounding", () => {
+    // divisions=7 makes a clean 3/4 bar land a couple ticks under 1440
+    const xml = doc(
+      `<measure number="1">
+        <attributes><divisions>7</divisions>
+          <time><beats>3</beats><beat-type>4</beat-type></time></attributes>
+        ${note("C", 4, 7)}${note("D", 4, 7)}${note("E", 4, 7)}
+      </measure>
+      <measure number="2">${note("F", 4, 7)}${note("G", 4, 7)}${note("A", 4, 7)}</measure>`,
+    );
+    const score = parseMusicXml(xml);
+    expect(score.measures[0].endTick).toBe(1440);
+    expect(score.measures[1].startTick).toBe(1440);
+  });
+
   it("reads tempo from a <sound tempo> direction", () => {
     const xml = doc(
       `<measure number="1">

@@ -303,9 +303,21 @@ function parseGlobalMeasures(
         )
       : 0;
     const contentEnd = partContentEnds[i] ?? 0;
-    const lengthTick = implicit
-      ? contentEnd || timeSigLen
-      : Math.max(contentEnd, timeSigLen) || IR_PPQ * 4;
+    // The written content (max across parts) is the source of truth for how
+    // long a measure lasts. Engravers fill measures with explicit rests, so a
+    // measure that comes up short is a genuine pickup / partial bar (anacrusis,
+    // the bar before a repeat, a mid-phrase meter change) — not silence to pad.
+    // Only fall back to the time signature when there's no content at all, and
+    // snap to it when the content is within a 32nd note (accumulated rounding).
+    const tolerance = IR_PPQ / 8;
+    let lengthTick: number;
+    if (contentEnd <= 0) {
+      lengthTick = timeSigLen || IR_PPQ * 4;
+    } else if (timeSigLen && Math.abs(contentEnd - timeSigLen) <= tolerance) {
+      lengthTick = timeSigLen;
+    } else {
+      lengthTick = contentEnd;
+    }
 
     return {
       number: String(attr(measureNode, "number") ?? i + 1),
