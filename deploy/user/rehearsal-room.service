@@ -1,0 +1,25 @@
+# User service — no root. Install to ~/.config/systemd/user/ and run with
+# `systemctl --user`. See deploy/README.md ("Running without root").
+#
+# Replace /usr/bin/node with the output of `which node` if it differs
+# (nvm: ~/.nvm/versions/node/<version>/bin/node).
+
+[Unit]
+Description=Rehearsal Room
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/rehearsal-room
+Environment=NODE_ENV=production
+Environment=PORT=3000
+Environment=DATABASE_URL=file:%h/rehearsal-room-data/prod.db
+Environment=STORAGE_DIR=%h/rehearsal-room-data/storage
+ExecStartPre=/usr/bin/node node_modules/prisma/build/index.js migrate deploy
+ExecStart=/usr/bin/node node_modules/next/dist/bin/next start --hostname 0.0.0.0 --port 3000
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

@@ -15,7 +15,8 @@ Pick one:
 
 - [A. Single host with Docker Compose](#a-single-host--docker-compose) — app + Caddy (automatic HTTPS)
 - [B. Kubernetes](#b-kubernetes) — Kustomize manifests, ingress-nginx + cert-manager
-- [C. Single host, bare Node + systemd](#c-single-host--bare-node--systemd) — no Docker
+- [C. Single host, bare Node + systemd](#c-single-host--bare-node--systemd) — no Docker, one system service
+- [D. Running without root](#d-running-without-root) — home directory, `systemctl --user`, no sudo
 
 ---
 
@@ -157,6 +158,79 @@ sudo systemctl restart rehearsal-room
 ```
 
 **Back up:** copy `/var/lib/rehearsal-room/` while traffic is quiet.
+
+---
+
+## D. Running without root
+
+No `sudo`, no Docker — everything under `$HOME`. Needs Node 22+ on your `PATH`
+(no root? install it with [nvm](https://github.com/nvm-sh/nvm) or
+[fnm](https://github.com/Schniz/fnm), both user-local).
+
+```bash
+git clone git@github.com:dashbo/rehearsal-room.git ~/rehearsal-room
+cd ~/rehearsal-room
+npm ci
+npx prisma generate
+npm run build
+npm prune --omit=dev
+
+mkdir -p ~/rehearsal-room-data/storage
+```
+
+Run it as a **user** systemd service — survives logout, restarts on failure,
+never touches `/etc`:
+
+```bash
+mkdir -p ~/.config/systemd/user
+cp deploy/user/rehearsal-room.service ~/.config/systemd/user/
+# if `which node` isn't /usr/bin/node, edit the two Exec lines in that file
+
+systemctl --user daemon-reload
+systemctl --user enable --now rehearsal-room
+systemctl --user status rehearsal-room
+journalctl --user -u rehearsal-room -f
+
+# keep it running after you log out (usually allowed without root; if polkit
+# refuses, ask an admin to run this one line once):
+loginctl enable-linger "$USER"
+```
+
+No systemd user session? Use `tmux`/`screen`, or `pm2` (`npm i -g pm2` into a
+user prefix). The command to run is:
+
+```bash
+DATABASE_URL=file:$HOME/rehearsal-room-data/prod.db \
+STORAGE_DIR=$HOME/rehearsal-room-data/storage \
+node node_modules/prisma/build/index.js migrate deploy
+DATABASE_URL=file:$HOME/rehearsal-room-data/prod.db \
+STORAGE_DIR=$HOME/rehearsal-room-data/storage \
+node node_modules/next/dist/bin/next start -H 0.0.0.0 -p 3000
+```
+
+**Reaching it.** An unprivileged process can't bind ports 80/443, so it listens
+on `3000`. Options:
+
+- Just use `http://<host>:3000` (open the port in the host firewall if any).
+- A userspace tunnel for a real hostname + HTTPS, no root:
+  `cloudflared tunnel`, `tailscale serve` / `funnel`, or `ngrok`.
+- If a reverse proxy you *don't* administer is already on the box, ask its
+  admin for a vhost → `127.0.0.1:3000`.
+
+**Upgrade:**
+
+```bash
+cd ~/rehearsal-room && git pull
+npm ci && npx prisma generate && npm run build && npm prune --omit=dev
+systemctl --user restart rehearsal-room
+```
+
+**Back up:** copy `~/rehearsal-room-data/` while traffic is quiet.
+
+**Rootless Docker/Podman** also works if either is available: `podman` is
+rootless by default, so `deploy/compose/compose.yaml` runs under
+`podman compose` (bind non-privileged ports, or `podman` can map 80/443 via
+`slirp4netns` port forwarding depending on setup).
 
 ---
 

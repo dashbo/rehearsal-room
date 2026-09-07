@@ -36,12 +36,13 @@ npm run dev                    # http://localhost:3000
 
 ## Deploying
 
-Everything is in [`deploy/`](deploy/), with three paths in
+Everything is in [`deploy/`](deploy/), with four paths in
 [`deploy/README.md`](deploy/README.md):
 
 - **Docker Compose** on one host (app + Caddy for automatic HTTPS)
 - **Kubernetes** (Kustomize manifests, ingress-nginx + cert-manager)
 - **bare Node + systemd**, no Docker
+- **no root** — home directory, `systemctl --user`, no sudo
 
 All run a single instance with state (SQLite + uploads) under one
 directory/volume; the container image is published to
