@@ -1,0 +1,18 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Score {
+  id               String   @id @default(cuid())
+  title            String
+  source           String // "musicxml" | "midi"
+  originalFilename String
+  filePath         String
+  ir               Json
+  createdAt        DateTime @default(now())
+}
