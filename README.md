@@ -1,16 +1,19 @@
-# Choir Practice
+# Rehearsal Room
 
-A web app that helps choir singers learn their parts. Add a score you have
+A web app for learning your part in an ensemble score. Add a score you have
 the rights to use — upload a file, paste a link, or load a sample — then
 rehearse with it:
 
 - play the music at any tempo (pitch unchanged)
-- **mute** any voice ("everything except alto"), or **Only this** to isolate one
-  ("just the alto line")
+- **mute** any part ("everything except the altos"); mute the other parts to
+  drill one in isolation
 - per-part volume
 - notation view with a playback cursor (MusicXML scores)
-- metronome and a 1-bar count-in
+- metronome and a 1-bar count-in — including before every loop repeat
 - loop a range of bars
+
+It's built around choral (SATB) scores today; the internal model is a generic
+list of parts, so instrumental / orchestral scores are a planned next step.
 
 ## Stack
 
@@ -55,7 +58,7 @@ Add a score (upload · URL · sample)
 Player page
   → loads Score IR (drives audio) + raw MusicXML (drives OSMD notation)
   → Tone.Transport schedules note events; a tempo-rate slider scales bpm
-  → per-part instrument → Tone.Channel (mute / solo / volume)
+  → per-part instrument → Tone.Channel (mute / volume)
   → OSMD cursor follows the transport position
 ```
 
@@ -86,7 +89,7 @@ You can rename or relabel any part in the mixer; the change is saved to the IR.
   playback runs straight through.
 - Grace notes, ornaments, swing feel, and fermata rubato are ignored.
 - Playback is a sampled instrument (piano / a synthetic "ooh" voice / a plain
-  synth), not a real choir. Lyrics are not sung.
+  synth) — not real singers. Lyrics are not sung.
 - The piano voice streams its samples from the Tone.js CDN; the "Synth" option
   needs no network.
 - No transpose in v1.
@@ -113,9 +116,10 @@ to end.
 3. **Play** — audio starts on the click; the cursor moves through the score.
 4. Drag **Tempo** to ~60% — playback and cursor slow together, pitch unchanged.
 5. **Mute** alto → alto silent, others continue.
-6. **Only this** on alto → only alto sounds; click it again → all return.
+6. Mute soprano/tenor/bass instead → only the alto line sounds; **Unmute all** returns them.
 7. Enable **Metronome** + **count-in** → one accented bar of clicks, then playback.
-8. Set **Loop bars** 3–5 and enable → the transport loops that range.
+8. Set **Loop bars** 3–5 and enable → the transport loops that range; with
+   count-in on, a bar of clicks plays before each repeat.
 9. Load the **3-part round (MIDI)** → parts come from tracks; the notation pane
    is replaced by a bar readout.
 10. Rename a part and reload → the name persists.

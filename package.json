@@ -1,5 +1,5 @@
 {
-  "name": "music-app",
+  "name": "rehearsal-room",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -38,5 +38,6 @@
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^3.2.7"
-  }
+  },
+  "description": "Learn your part in an ensemble score — play at any tempo, mute any part, loop a section."
 }

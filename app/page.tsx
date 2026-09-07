@@ -13,10 +13,10 @@ export default function HomePage() {
   return (
     <main className="mx-auto max-w-2xl px-5 py-10">
       <header className="mb-8">
-        <h1 className="text-2xl font-semibold tracking-tight">Choir Practice</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Rehearsal Room</h1>
         <p className="mt-1 text-sm text-muted">
-          Upload a score you have the rights to use, then rehearse your part —
-          play at any tempo and mute or solo any voice.
+          Add a score you have the rights to use, then rehearse your part —
+          play at any tempo, mute any part, and loop the hard bars.
         </p>
       </header>
 

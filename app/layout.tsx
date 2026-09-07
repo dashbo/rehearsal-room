@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Choir Practice",
+  title: "Rehearsal Room",
   description:
-    "Upload a score and rehearse your part — play at any tempo, mute or solo any voice.",
+    "Add a score and rehearse your part — play at any tempo, mute any part, loop a section.",
 };
 
 export default function RootLayout({
