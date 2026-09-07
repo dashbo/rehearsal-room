@@ -108,20 +108,3 @@ tuplet durations, tie merging, a simple repeat, tempo directions).
 `test/voices.test.ts` covers vocal-part separation (chorded hymn split, open
 score left alone). `test/samples.test.ts` parses the bundled sample files end
 to end.
-
-## Verifying the player by hand
-
-1. `npm run dev`, open the app, click **Load SATB chorale (MusicXML)**.
-2. Notation renders; the mixer lists Soprano / Alto / Tenor / Bass.
-3. **Play** — audio starts on the click; the cursor moves through the score.
-4. Drag **Tempo** to ~60% — playback and cursor slow together, pitch unchanged.
-5. **Mute** alto → alto silent, others continue.
-6. Mute soprano/tenor/bass instead → only the alto line sounds; **Unmute all** returns them.
-7. Enable **Metronome** + **count-in** → one accented bar of clicks, then playback.
-8. Set **Loop bars** 3–5 and enable → the transport loops that range; with
-   count-in on, a bar of clicks plays before each repeat.
-9. Load the **3-part round (MIDI)** → parts come from tracks; the notation pane
-   is replaced by a bar readout.
-10. Rename a part and reload → the name persists.
-11. Paste `https://www.churchofjesuschrist.org/media/music/songs/welcome-home?lang=eng`
-    → imports as "Welcome Home", 3/4, split into S/A/T/B.
