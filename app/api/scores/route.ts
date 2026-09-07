@@ -1,13 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { saveUpload } from "@/lib/storage";
-import {
-  extensionOf,
-  isAcceptedExtension,
-  MAX_UPLOAD_BYTES,
-  parseScore,
-} from "@/lib/parse-score";
-import type { ScoreIR } from "@/lib/score-ir";
+import { createScore, ScoreInputError } from "@/lib/create-score";
 
 export const runtime = "nodejs";
 
@@ -19,6 +12,7 @@ export async function GET() {
       title: true,
       source: true,
       originalFilename: true,
+      sourceUrl: true,
       createdAt: true,
     },
   });
@@ -44,58 +38,14 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const ext = extensionOf(file.name);
-  if (!isAcceptedExtension(ext)) {
-    return NextResponse.json(
-      {
-        error:
-          "Unsupported file type. Upload MusicXML (.xml, .musicxml, .mxl) or MIDI (.mid).",
-      },
-      { status: 400 },
-    );
-  }
-
-  if (file.size > MAX_UPLOAD_BYTES) {
-    return NextResponse.json(
-      { error: `File is too large (max ${MAX_UPLOAD_BYTES / 1024 / 1024} MB).` },
-      { status: 400 },
-    );
-  }
-
-  const buffer = Buffer.from(await file.arrayBuffer());
-
-  let ir: ScoreIR;
-  let source: string;
-  let warnings: string[];
   try {
-    const result = parseScore(buffer, file.name);
-    ir = result.ir;
-    source = result.source;
-    warnings = result.warnings;
+    const data = new Uint8Array(await file.arrayBuffer());
+    const { id, warnings } = await createScore(data, file.name);
+    return NextResponse.json({ id, warnings }, { status: 201 });
   } catch (err) {
-    return NextResponse.json(
-      {
-        error:
-          err instanceof Error
-            ? err.message
-            : "Could not read this score file.",
-      },
-      { status: 422 },
-    );
+    if (err instanceof ScoreInputError) {
+      return NextResponse.json({ error: err.message }, { status: err.status });
+    }
+    throw err;
   }
-
-  const filePath = await saveUpload(buffer, ext);
-
-  const score = await prisma.score.create({
-    data: {
-      title: ir.title,
-      source,
-      originalFilename: file.name,
-      filePath,
-      ir: ir as unknown as object,
-    },
-    select: { id: true },
-  });
-
-  return NextResponse.json({ id: score.id, warnings }, { status: 201 });
 }

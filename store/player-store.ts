@@ -45,10 +45,12 @@ interface PlayerState {
   setLoop: (loop: Partial<PlayerState["loop"]>) => void;
 
   setPartControls: (id: string, patch: Partial<PartControls>) => void;
+  isolatePart: (id: string) => void;
+  clearMutes: () => void;
   renamePart: (id: string, name: string, voiceType: string) => void;
 }
 
-const DEFAULT_PART: PartControls = { mute: false, solo: false, volumeDb: 0 };
+const DEFAULT_PART: PartControls = { mute: false, volumeDb: 0 };
 
 export const usePlayerStore = create<PlayerState>((set, get) => ({
   engine: null,
@@ -148,9 +150,39 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     if (engine && updated) {
       engine.setPartControls(id, {
         mute: updated.mute,
-        solo: updated.solo,
         volumeDb: updated.volumeDb,
       });
+    }
+  },
+
+  isolatePart: (id) => {
+    const parts = get().parts;
+    const target = parts.find((p) => p.id === id);
+    const alreadyIsolated =
+      !!target &&
+      !target.mute &&
+      parts.every((p) => p.id === id || p.mute);
+    const next = parts.map((p) => ({
+      ...p,
+      mute: alreadyIsolated ? false : p.id !== id,
+    }));
+    set({ parts: next });
+    const engine = get().engine;
+    if (engine) {
+      for (const p of next) {
+        engine.setPartControls(p.id, { mute: p.mute, volumeDb: p.volumeDb });
+      }
+    }
+  },
+
+  clearMutes: () => {
+    const next = get().parts.map((p) => ({ ...p, mute: false }));
+    set({ parts: next });
+    const engine = get().engine;
+    if (engine) {
+      for (const p of next) {
+        engine.setPartControls(p.id, { mute: false, volumeDb: p.volumeDb });
+      }
     }
   },
 

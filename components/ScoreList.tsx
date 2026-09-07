@@ -4,6 +4,14 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { deleteScore, listScores, type ScoreListItem } from "@/lib/api";
 
+function hostOf(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+}
+
 export function ScoreList({ refreshKey }: { refreshKey: number }) {
   const [scores, setScores] = useState<ScoreListItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -58,8 +66,10 @@ export function ScoreList({ refreshKey }: { refreshKey: number }) {
             </span>
             <span className="block truncate text-xs text-muted">
               {score.source === "midi" ? "MIDI" : "MusicXML"} ·{" "}
-              {score.originalFilename} ·{" "}
-              {new Date(score.createdAt).toLocaleDateString()}
+              {score.sourceUrl
+                ? hostOf(score.sourceUrl)
+                : score.originalFilename}{" "}
+              · {new Date(score.createdAt).toLocaleDateString()}
             </span>
           </Link>
           <button

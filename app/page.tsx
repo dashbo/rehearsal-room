@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Uploader } from "@/components/Uploader";
+import { UrlImport } from "@/components/UrlImport";
 import { ScoreList } from "@/components/ScoreList";
 import { SampleButtons } from "@/components/SampleButtons";
 
@@ -21,6 +22,13 @@ export default function HomePage() {
 
       <section className="mb-6">
         <Uploader onUploaded={bump} />
+      </section>
+
+      <section className="mb-8">
+        <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted">
+          Or paste a link
+        </h2>
+        <UrlImport onImported={bump} />
       </section>
 
       <section className="mb-8">

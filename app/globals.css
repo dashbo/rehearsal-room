@@ -41,7 +41,17 @@ body {
 }
 
 /* OpenSheetMusicDisplay renders raw SVG; keep it readable in dark mode */
+.osmd-container {
+  position: relative;
+}
 .osmd-container svg {
   background: #ffffff;
   border-radius: 8px;
+}
+/* Tailwind Preflight resets images; the playback cursor is an <img> that
+   OSMD positions and sizes itself — let it be. */
+.osmd-container img {
+  max-width: none;
+  height: auto;
+  display: block;
 }

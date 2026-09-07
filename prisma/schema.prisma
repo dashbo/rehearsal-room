@@ -13,6 +13,7 @@ model Score {
   source           String // "musicxml" | "midi"
   originalFilename String
   filePath         String
+  sourceUrl        String?
   ir               Json
   createdAt        DateTime @default(now())
 }

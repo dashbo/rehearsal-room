@@ -5,6 +5,7 @@ export interface ScoreListItem {
   title: string;
   source: ScoreSource;
   originalFilename: string;
+  sourceUrl: string | null;
   createdAt: string;
 }
 
@@ -41,6 +42,18 @@ export async function uploadScore(
   const form = new FormData();
   form.append("file", file);
   const res = await fetch("/api/scores", { method: "POST", body: form });
+  if (!res.ok) throw new Error(await readError(res));
+  return res.json();
+}
+
+export async function importScoreFromUrl(
+  url: string,
+): Promise<{ id: string; warnings: string[] }> {
+  const res = await fetch("/api/scores/from-url", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url }),
+  });
   if (!res.ok) throw new Error(await readError(res));
   return res.json();
 }

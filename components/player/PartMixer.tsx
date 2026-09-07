@@ -8,14 +8,26 @@ import { VOICE_TYPES, type VoiceType } from "@/lib/score-ir";
 export function PartMixer({ scoreId }: { scoreId: string }) {
   const parts = usePlayerStore((s) => s.parts);
   const setPartControls = usePlayerStore((s) => s.setPartControls);
+  const isolatePart = usePlayerStore((s) => s.isolatePart);
+  const clearMutes = usePlayerStore((s) => s.clearMutes);
   const renamePart = usePlayerStore((s) => s.renamePart);
 
-  const anySolo = parts.some((p) => p.solo);
+  const anyMuted = parts.some((p) => p.mute);
 
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-panel">
-      <div className="border-b border-border px-4 py-2 text-xs font-semibold uppercase tracking-wide text-muted">
-        Parts
+      <div className="flex items-center justify-between border-b border-border px-4 py-2">
+        <span className="text-xs font-semibold uppercase tracking-wide text-muted">
+          Parts
+        </span>
+        {anyMuted && (
+          <button
+            onClick={clearMutes}
+            className="text-xs text-accent hover:underline"
+          >
+            Unmute all
+          </button>
+        )}
       </div>
       <ul className="divide-y divide-border">
         {parts.map((part) => (
@@ -23,8 +35,8 @@ export function PartMixer({ scoreId }: { scoreId: string }) {
             key={part.id}
             scoreId={scoreId}
             part={part}
-            dimmed={anySolo && !part.solo}
             onControls={(patch) => setPartControls(part.id, patch)}
+            onIsolate={() => isolatePart(part.id)}
             onRename={(name, voiceType) => renamePart(part.id, name, voiceType)}
           />
         ))}
@@ -36,8 +48,8 @@ export function PartMixer({ scoreId }: { scoreId: string }) {
 function PartRow({
   scoreId,
   part,
-  dimmed,
   onControls,
+  onIsolate,
   onRename,
 }: {
   scoreId: string;
@@ -46,15 +58,10 @@ function PartRow({
     name: string;
     voiceType: string;
     mute: boolean;
-    solo: boolean;
     volumeDb: number;
   };
-  dimmed: boolean;
-  onControls: (patch: {
-    mute?: boolean;
-    solo?: boolean;
-    volumeDb?: number;
-  }) => void;
+  onControls: (patch: { mute?: boolean; volumeDb?: number }) => void;
+  onIsolate: () => void;
   onRename: (name: string, voiceType: string) => void;
 }) {
   const [editing, setEditing] = useState(false);
@@ -80,7 +87,7 @@ function PartRow({
   return (
     <li
       className={`flex flex-wrap items-center gap-3 px-4 py-3 transition-opacity ${
-        dimmed ? "opacity-40" : ""
+        part.mute ? "opacity-45" : ""
       }`}
     >
       <div className="min-w-40 flex-1">
@@ -138,6 +145,13 @@ function PartRow({
       </div>
 
       <button
+        onClick={onIsolate}
+        className="rounded-md border border-border px-2 py-1 text-xs font-medium hover:border-accent"
+        title="Play only this part (click again to bring the others back)"
+      >
+        Only this
+      </button>
+      <button
         onClick={() => onControls({ mute: !part.mute })}
         className={`rounded-md border px-2 py-1 text-xs font-medium ${
           part.mute
@@ -145,17 +159,7 @@ function PartRow({
             : "border-border hover:border-accent"
         }`}
       >
-        Mute
-      </button>
-      <button
-        onClick={() => onControls({ solo: !part.solo })}
-        className={`rounded-md border px-2 py-1 text-xs font-medium ${
-          part.solo
-            ? "border-accent bg-accent/10 text-accent"
-            : "border-border hover:border-accent"
-        }`}
-      >
-        Solo
+        {part.mute ? "Muted" : "Mute"}
       </button>
 
       <input

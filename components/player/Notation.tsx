@@ -38,6 +38,9 @@ export function Notation({
         drawingParameters: "compact",
         drawPartNames: true,
         followCursor: true,
+        cursorsOptions: [
+          { type: 0, color: "#3b5bdb", alpha: 0.4, follow: true },
+        ],
       });
       osmdRef.current = osmd;
 
@@ -49,7 +52,10 @@ export function Notation({
       await osmd.load(xml);
       if (cancelled) return;
       osmd.render();
+      osmd.cursor.reset();
       osmd.cursor.show();
+      osmd.cursor.update();
+      lastWholeRef.current = 0;
       setStatus("ready");
     })().catch((e) => {
       if (cancelled) return;
@@ -81,11 +87,20 @@ export function Notation({
     }
     lastWholeRef.current = targetWhole;
 
+    let moved = false;
     let guard = 0;
     while (!cursor.iterator.EndReached && guard++ < 5000) {
       const ts = cursor.iterator.currentTimeStamp?.RealValue ?? 0;
       if (ts >= targetWhole - 1e-6) break;
       cursor.next();
+      moved = true;
+    }
+    if (moved) {
+      cursor.update();
+      cursor.cursorElement?.scrollIntoView?.({
+        block: "nearest",
+        inline: "nearest",
+      });
     }
   }, [positionTicks, ir.ppq, status]);
 

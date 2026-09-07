@@ -9,7 +9,6 @@ import { buildBeatGrid, Metronome } from "./metronome";
 
 export interface PartControls {
   mute: boolean;
-  solo: boolean;
   /** volume in dB, -40..+6 */
   volumeDb: number;
 }
@@ -150,7 +149,6 @@ export class AudioEngine {
     if (!pc) return;
     pc.channel.volume.value = controls.volumeDb;
     pc.channel.mute = controls.mute;
-    pc.channel.solo = controls.solo;
   }
 
   applyAllControls(map: Record<string, PartControls>) {
