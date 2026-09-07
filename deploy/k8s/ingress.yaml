@@ -1,0 +1,28 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: rehearsal-room
+  labels:
+    app: rehearsal-room
+  annotations:
+    # --- EDIT THESE ---
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    # uploads can be ~5 MB; nginx-ingress defaults to 1 MB
+    nginx.ingress.kubernetes.io/proxy-body-size: "8m"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - rehearsal.example.com # --- EDIT ---
+      secretName: rehearsal-room-tls
+  rules:
+    - host: rehearsal.example.com # --- EDIT ---
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: rehearsal-room
+                port:
+                  name: http

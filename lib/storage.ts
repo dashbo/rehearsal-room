@@ -6,9 +6,14 @@ import path from "node:path";
  * Local filesystem storage for uploaded score files. A single function
  * boundary so this can become S3 (or similar) later without touching
  * callers.
+ *
+ * `STORAGE_DIR` env overrides the location (the container mounts a
+ * PersistentVolume there).
  */
 
-const STORAGE_DIR = path.join(process.cwd(), "storage");
+const STORAGE_DIR = process.env.STORAGE_DIR
+  ? path.resolve(process.env.STORAGE_DIR)
+  : path.join(process.cwd(), "storage");
 
 function resolveInStorage(filePath: string): string {
   const abs = path.resolve(STORAGE_DIR, filePath);

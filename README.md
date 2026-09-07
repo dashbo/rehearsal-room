@@ -34,6 +34,12 @@ npm run dev                    # http://localhost:3000
 
 `npm run samples` regenerates the bundled sample scores in `public/samples/`.
 
+## Deploying
+
+A container image (`Dockerfile`) plus Kustomize manifests for Kubernetes
+(single replica, SQLite + uploads on one PersistentVolume, ingress-nginx +
+cert-manager) live in [`deploy/`](deploy/). See [`deploy/README.md`](deploy/README.md).
+
 ## Adding scores by URL
 
 Paste a link on the home page. Supported:
