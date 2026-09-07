@@ -58,10 +58,14 @@ export function Notation({ scoreId, ir }: { scoreId: string; ir: ScoreIR }) {
   // behind a transparent SVG). Our sheet has an opaque white background, so
   // force the cursor in front and make sure it's displayed.
   function forceCursorVisible() {
-    const el = getCursor()?.cursorElement as HTMLElement | undefined;
+    const el = getCursor()?.cursorElement as HTMLImageElement | undefined;
     if (!el) return;
     el.style.zIndex = "10";
     el.style.display = "";
+    // Tailwind's Preflight forces `img { height: auto }`, which overrides the
+    // height attribute OSMD sets and can collapse the band — pin it back.
+    const h = el.getAttribute("height");
+    if (h) el.style.height = `${h}px`;
   }
 
   // re-render for the current container width, then (re)show the cursor

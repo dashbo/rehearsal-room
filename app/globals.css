@@ -52,5 +52,14 @@ body {
    OSMD positions and sizes itself — don't let the stylesheet fight it. */
 .osmd-container img {
   max-width: none;
-  z-index: 5;
+}
+
+/* OSMD draws the cursor as a canvas-generated PNG that can come out blank.
+   Paint our own translucent band on the element (the sheet is always white,
+   so a fixed blue is fine) so it's visible regardless. */
+.osmd-container img[id^="cursorImg"] {
+  z-index: 10 !important;
+  background: rgba(47, 111, 235, 0.24);
+  border-radius: 2px;
+  outline: 1px solid rgba(47, 111, 235, 0.4);
 }
